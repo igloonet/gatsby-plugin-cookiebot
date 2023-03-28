@@ -1,42 +1,42 @@
-import React from "react";
+import React from 'react'
 
-import { PreRenderHTMLArgs, RenderBodyArgs } from "gatsby";
-import { PluginOptions } from "./types/types";
+import { PreRenderHTMLArgs, RenderBodyArgs } from 'gatsby'
+import { PluginOptions } from './types/types'
 import {
   INCLUDE_IN_DEVELOPMENT_DEFAULT,
   MANUAL_MODE_DEFAULT,
-} from "./constants/constants";
+} from './constants/constants'
 
-const isProduction = process.env.NODE_ENV === "production";
+const isProduction = process.env.NODE_ENV === 'production'
 
 export const onPreRenderHTML = (
   args: PreRenderHTMLArgs,
-  pluginOptions: PluginOptions
+  pluginOptions: PluginOptions,
 ) => {
   const {
     blockGtm = true,
     manualMode = MANUAL_MODE_DEFAULT,
     includeInDevelopment = INCLUDE_IN_DEVELOPMENT_DEFAULT,
-  } = pluginOptions;
+  } = pluginOptions
 
   // Do not modify scripts when in development. Can be overriden with plugin options.
-  if (!isProduction && !includeInDevelopment) return;
+  if (!isProduction && !includeInDevelopment) return
 
   const {
     getHeadComponents,
     replaceHeadComponents,
     getPreBodyComponents,
     replacePreBodyComponents,
-  } = args;
+  } = args
 
-  const headComponents = getHeadComponents();
+  const headComponents = getHeadComponents()
 
   // Headcomponents needs to be assigned to a new
   const newHeadComponents = headComponents.map(
     (component: React.ReactElement) => {
-      if (component.type === "script") {
+      if (component.type === 'script') {
         if (
-          component.key === "plugin-google-tagmanager" &&
+          component.key === 'plugin-google-tagmanager' &&
           manualMode &&
           blockGtm &&
           isProduction // gatsby-plugin-google-tagmanager will thrown an error if the script has not been loaded in development
@@ -49,61 +49,60 @@ export const onPreRenderHTML = (
               key={component.key}
               {...component.props}
             />
-          );
+          )
         }
       }
 
-      return component;
-    }
-  );
+      return component
+    },
+  )
 
-  replaceHeadComponents(newHeadComponents);
+  replaceHeadComponents(newHeadComponents)
 
-  const preBodyComponents = getPreBodyComponents();
+  const preBodyComponents = getPreBodyComponents()
 
   const newPreBodyComponents = preBodyComponents.map(
     (component: React.ReactElement) => {
-      if (component.type === "noscript") {
+      if (component.type === 'noscript') {
         if (
-          component.key === "plugin-google-tagmanager" &&
+          component.key === 'plugin-google-tagmanager' &&
           manualMode &&
           blockGtm &&
           isProduction // gatsby-plugin-google-tagmanager will thrown an error if the script has not been loaded in development
         ) {
           // Add Cookiebot manual mode data attribute to GTM noscript's iframe script
-          const gtmIframeStr = component.props.dangerouslySetInnerHTML.__html;
+          const gtmIframeStr = component.props.dangerouslySetInnerHTML.__html
           // Add data attribute to string
           const gtmIframeStrWithCookiebotManualMode =
             gtmIframeStr.substr(0, 8) +
             'data-cookieconsent="statistics" ' +
-            gtmIframeStr.substr(8);
-          const newProps = { ...component.props };
-          newProps.dangerouslySetInnerHTML.__html =
-            gtmIframeStrWithCookiebotManualMode;
-          return <noscript key={component.key} {...newProps} />;
+            gtmIframeStr.substr(8)
+          const newProps = { ...component.props }
+          newProps.dangerouslySetInnerHTML.__html = gtmIframeStrWithCookiebotManualMode
+          return <noscript key={component.key} {...newProps} />
         }
       }
-      return component;
-    }
-  );
+      return component
+    },
+  )
 
-  replacePreBodyComponents(newPreBodyComponents);
-};
+  replacePreBodyComponents(newPreBodyComponents)
+}
 
 export const onRenderBody = (
   args: RenderBodyArgs,
-  pluginOptions: PluginOptions
+  pluginOptions: PluginOptions,
 ) => {
   const {
     cookiebotId,
     manualMode = MANUAL_MODE_DEFAULT,
     includeInDevelopment = INCLUDE_IN_DEVELOPMENT_DEFAULT,
-  } = pluginOptions;
+  } = pluginOptions
 
   // Do not add script when in development. Can be overriden with plugin options.
-  if (!isProduction && !includeInDevelopment) return;
+  if (!isProduction && !includeInDevelopment) return
 
-  const { setHeadComponents } = args;
+  const { setHeadComponents } = args
 
   const headComponents = [
     <script
@@ -112,8 +111,9 @@ export const onRenderBody = (
       src="https://consent.cookiebot.com/uc.js"
       data-cbid={cookiebotId}
       type="text/javascript"
+      data-consentmode="disabled"
       async={manualMode ? true : undefined} // Undefined removes the attribute completely. Async needs to be removed entirely for automode to block all scripts.
     ></script>,
-  ];
-  setHeadComponents(headComponents);
-};
+  ]
+  setHeadComponents(headComponents)
+}
